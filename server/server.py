@@ -49,7 +49,7 @@ def serve_files(uid, public_key):
 
 # TODO: ensure it's a real app
 # TODO: check a signature
-@app.route('/file/<string:uid>/<string:public_key>', methods=['POST'])
+@app.route('/user/<string:uid>/<string:public_key>', methods=['POST'])
 def store_data(uid, public_key):
     """Store user encrypted data."""
     if 'file' not in request.files:
@@ -99,9 +99,23 @@ def get_requests(uid):
     cursor.execute("SELECT a_request FROM t_requests WHERE a_uid = (%s)", (uid, ))
 
     data = cursor.fetchone()
-    print(data)
 
-    return jsonify({'request': data})
+    if data:
+        return jsonify({'request': data})
+    else:
+        return jsonify({'message': 'No requests yet'})
+
+
+@app.route('/user/<string:uid>/processed', methods=['GET'])
+def mark_processed(uid):
+    """Mark user request as processed."""
+    db_connection = get_db()
+    cursor = db_connection.cursor()
+    cursor.execute("DELETE FROM t_requests WHERE a_uid = (%s)", (uid, ))
+
+    db_connection.commit()
+
+    return jsonify({'message': 'Request was removed'})
 
 
 # Run the server app
