@@ -1,0 +1,6 @@
+server/user_files/*
+
+venv*/*
+.cache/
+
+*.pyc
