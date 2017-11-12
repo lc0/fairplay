@@ -4,16 +4,32 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-from flask import Flask, jsonify, send_from_directory, request
-
+import json
 import os
+
+import psycopg2
+
+from flask import Flask, jsonify, send_from_directory, request, g
 
 from utils import extract_by_key
 
 app = Flask(__name__)
 working_dir = os.getcwd()
 FILES_PREFIX = 'user_files'
+
+
+def get_db():
+    """Open a new database connection if there is none yet for the current application context."""
+    if not hasattr(g, 'db_connection'):
+        g.db_connection = psycopg2.connect("dbname=postgres user=khomenkos")
+    return g.db_connection
+
+
+@app.teardown_appcontext
+def close_db(error):
+    """Close the database again at the end of the request."""
+    if hasattr(g, 'db_connection'):
+        g.db_connection.close()
 
 
 @app.route("/")
@@ -65,7 +81,12 @@ def process_block():
     user_id = block_meta['user_id']
     key_scopes = extract_by_key(block_meta['scopes'])
 
-    app.logger.info("Triggering event to user {} with request {}".format(user_id, key_scopes))
+    db_connection = get_db()
+    cursor = db_connection.cursor()
+    cursor.execute("""INSERT INTO t_requests (a_uid, a_request)
+                        VALUES (%s, %s)""", (user_id, json.dumps(key_scopes)))
+    db_connection.commit()
+    app.logger.info("Added an event to user {} with request {}".format(user_id, key_scopes))
 
     return jsonify({'message': 'Queued to process encode a file'})
 
