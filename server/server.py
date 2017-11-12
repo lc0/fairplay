@@ -91,6 +91,19 @@ def process_block():
     return jsonify({'message': 'Queued to process encode a file'})
 
 
+@app.route('/user/<string:uid>/requests', methods=['GET'])
+def get_requests(uid):
+    """Return requests for user."""
+    db_connection = get_db()
+    cursor = db_connection.cursor()
+    cursor.execute("SELECT a_request FROM t_requests WHERE a_uid = (%s)", (uid, ))
+
+    data = cursor.fetchone()
+    print(data)
+
+    return jsonify({'request': data})
+
+
 # Run the server app
 if __name__ == "__main__":
     app.debug = True
